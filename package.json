@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "main": "app.js",
   "scripts": {
-    "postinstall": "bower install",
     "start": "node app.js"
   },
   "dependencies": {
