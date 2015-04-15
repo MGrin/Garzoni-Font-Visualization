@@ -1,0 +1,35 @@
+doctype html
+html
+  head
+    title Garzoni font
+    link(rel="stylesheet", href="/css/styles.css")
+    link(href='http://fonts.googleapis.com/css?family=Stardos+Stencil' rel='stylesheet' type='text/css')
+    link(href="/js/lib/bootstrap/dist/css/bootstrap.min.css" rel='stylesheet' type='text/css')
+    link(href="/js/lib/bootstrap/dist/css/bootstrap-theme.min.css" rel='stylesheet' type='text/css')
+  body
+    #header.jumbotron
+      #title
+        h1 Garzoni font dataset’s profession profiling and descriptive statistics
+      #buttons.col-lg-6.text-center
+        button#use.btn.btn-success Use our data
+        button#upload.btn.btn-success Upload your data
+      #description.col-lg-6
+        p Description here blablabla
+    #content.col-lg-12.hide
+      #loading-window.col-lg-12.hide
+        h1.text-center Loading data...
+        #data-symbols.img.img-responsive.img-circle
+          p
+          | 1011
+          br
+          | 1101
+          br
+          | 1111
+      #charts.hide
+        #dashboard
+          p#numberOfRecords
+  script(src="/js/lib/jquery/dist/jquery.min.js")
+  script(src="/js/lib/Chart.js/Chart.min.js")
+  script(src="/js/lib/move.js/move.min.js")
+  script(src="/js/lib/async/lib/async.js")
+  script(src="/js/index.js")

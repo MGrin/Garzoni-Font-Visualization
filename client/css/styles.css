@@ -1,0 +1,47 @@
+#header {
+  height: 500px;
+  margin: 0;
+  background-color: #2A4D6E;
+  color: white;
+}
+#title {
+  position: relative;
+  top: -600px;
+  text-align: left;
+  font-family: 'Stardos Stencil', cursive;
+  font-size: 3em;
+}
+
+#buttons {
+  opacity: 0;
+}
+
+.btn {
+  margin: 0 10px;
+}
+
+#description {
+  position: relative;
+  top: -100px;
+  opacity: 0;
+}
+#content {
+  height: 100%;
+}
+
+#loading-window {
+  color: #888;
+}
+
+#data-symbols {
+  width: 100px;
+  height: 100px;
+  background-color: black;
+  color: white;
+  text-align: center;
+  padding-top: 10px;
+}
+
+#dashboard {
+  display: none;
+}
