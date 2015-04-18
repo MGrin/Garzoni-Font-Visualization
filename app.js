@@ -1,5 +1,10 @@
 var express = require('express');
+var livereload = require('express-livereload');
+
 var app = express();
+livereload(app, {
+  watchDir: 'client/'
+});
 
 app.set('port', (process.env.PORT || 5000));
 app.set('view engine', 'jade');

@@ -1,4 +1,9 @@
-var garzoniData = [];
+var statistics;
+var charts = {
+  measurables: {
+    dataQuantity: 'year'
+  }
+};
 
 var currentState = '';
 var changeStateFor = function (state) {
@@ -36,6 +41,7 @@ var stateCallbacks = {
   },
   'data:use': function () {
     $('#content').removeClass('hide');
+    $('#header').slideUp(500);
     $('#loading-window').removeClass('hide');
     $.ajax({
       type: "GET",
@@ -43,17 +49,13 @@ var stateCallbacks = {
       dataType: "text",
       success: function(data) {
         $('#loading-window h1').text('Analysing data...');
-        readCsv(data);
+        statistics = new Statistics(csvToArray(data));
+        currentState = 'show:dashboard';
       }
      });
 
     async.series([
       function (next) {
-        $('html, body').animate({
-          scrollTop: $("#content").offset().top
-        }, 500);
-        return next();
-      }, function (next) {
         var rollData = function () {
           move('#data-symbols')
             .duration(500)
@@ -78,13 +80,51 @@ var stateCallbacks = {
     });
   },
   'show:dashboard' : function () {
-    $('#dashboard #numberOfRecords').text('Total number of records: ' + (garzoniData.length-1));
     async.series([
       function (next) {
         $('#loading-window').fadeOut(300, next);
+        $('#dashboard').removeClass('hide');
       }, function (next) {
-        $('#charts').removeClass('hide');
+        var generalInfo = {
+          nbOfRecords: statistics.getNbOfRecords(),
+          nbOfRegisters: statistics.getNbOfRegisters()
+        };
+
+        var generalInfoHTML = '';
+        for (var key in generalInfo) {
+          generalInfoHTML += '<p id="#' + key + '">' + textById[key] + ':' + '<span class="pull-right">' + generalInfo[key] + '</span></p>'
+        }
+        $('#dashboard #general-info').html(generalInfoHTML);
+        return next();
+      }, function (next) {
+        var descriptionHTML = '';
+        var descriptions = statistics.description;
+        for (var key in descriptions) {
+          descriptionHTML += '<div class="list-group-item">' +
+                                '<h4 class="list-group-item-heading">' + key + '</h4>' +
+                                '<p class="list-group-item-text">' + descriptions[key] + '</p>' +
+                              '</div>';
+        }
+        $('#dashboard #data-description .list-group').html(descriptionHTML);
+        return next();
+      }, function (next) {
         $('#dashboard').fadeIn(300, next);
+      }, function (next) {
+        // Records Registers distribution pie chart
+        charts.recordRegister = {};
+        charts.recordRegister.ctx = $("#records-registers-distribution-pie canvas").get(0).getContext("2d");
+        charts.recordRegister.chart = new Chart(charts.recordRegister.ctx).Doughnut(statistics.getRecordRegisterDrawablePie(),{});
+
+        // Records Year distribution pie chart
+        charts.recordYear = {};
+        charts.recordYear.ctx = $("#records-year-distribution-pie canvas").get(0).getContext("2d");
+        charts.recordYear.chart = new Chart(charts.recordYear.ctx).Doughnut(statistics.getRecordYearDrawablePie(),{});
+
+        return next();
+      }, function (next) {
+        charts.dataQuantity = {};
+        charts.dataQuantity.ctx = $('#registrer-year-value canvas').get(0).getContext("2d");
+        charts.dataQuantity.chart = new Chart(charts.dataQuantity.ctx).Bar(statistics.getDataQuantityDrawableBar(charts.measurables.dataQuantity), {});
       }
     ], function () {
 
@@ -92,51 +132,31 @@ var stateCallbacks = {
   }
 }
 
+var draw
+var textById = {
+  'nbOfRecords' : "Total number of records",
+  'nbOfRegisters' : "Total number of registers"
+};
+
 var initOnClickEvents = function () {
   $('#buttons > #use').click(function () {
     changeStateFor('data:use');
   });
 
-  $('#buttons > #upload').click(function () {
-    changeStateFor('data:upload');
+  $('#registrer-year-value button').click(function () {
+    if (charts.measurables.dataQuantity === 'year') {
+      charts.measurables.dataQuantity = 'register';
+      $('#registrer-year-value h4').text('Number of records per register, in %');
+      $(this).text('Show years');
+    } else {
+      charts.measurables.dataQuantity = 'year';
+      $('#registrer-year-value h4').text('Number of records per year, in %');
+      $(this).text('Show registers');
+    }
+    charts.dataQuantity.chart.destroy();
+    charts.dataQuantity.chart = new Chart(charts.dataQuantity.ctx).Bar(statistics.getDataQuantityDrawableBar(charts.measurables.dataQuantity), {});
   });
 }
-
-function csvToArray(csvString){
-  // The array we're going to build
-  var csvArray   = [];
-  // Break it into rows to start
-  var csvRows    = csvString.split(/\n/);
-  // Take off the first line to get the headers, then split that into an array
-  var csvHeaders = csvRows.shift().split(';');
-
-  // Loop through remaining rows
-  for(var rowIndex = 0; rowIndex < csvRows.length; ++rowIndex){
-    var rowArray  = csvRows[rowIndex].split(';');
-
-    // Create a new row object to store our data.
-    var rowObject = csvArray[rowIndex] = {};
-
-    // Then iterate through the remaining properties and use the headers as keys
-    for(var propIndex = 0; propIndex < rowArray.length; ++propIndex){
-      // Grab the value from the row array we're looping through...
-      var propValue =   rowArray[propIndex].replace(/^"|"$/g,'');
-      // ...also grab the relevant header (the RegExp in both of these removes quotes)
-      var propLabel = csvHeaders[propIndex].replace(/^"|"$/g,'');;
-
-      rowObject[propLabel] = propValue;
-    }
-  }
-
-  return csvArray;
-}
-
-var readCsv = function (data) {
-  console.log('reading data');
-  garzoniData = csvToArray(data);
-
-  currentState = 'show:dashboard';
-};
 
 $(document).ready(function () {
   move.select = function(selector){

@@ -27,6 +27,7 @@
 }
 #content {
   height: 100%;
+  padding: 10px;
 }
 
 #loading-window {
@@ -44,4 +45,13 @@
 
 #dashboard {
   display: none;
+}
+
+#data-description {
+  height: 95vh;
+  overflow-y: auto;
+}
+
+canvas {
+  width: 100%;
 }

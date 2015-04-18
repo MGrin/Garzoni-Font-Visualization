@@ -6,13 +6,13 @@ html
     link(href='http://fonts.googleapis.com/css?family=Stardos+Stencil' rel='stylesheet' type='text/css')
     link(href="/js/lib/bootstrap/dist/css/bootstrap.min.css" rel='stylesheet' type='text/css')
     link(href="/js/lib/bootstrap/dist/css/bootstrap-theme.min.css" rel='stylesheet' type='text/css')
+    != LRScript
   body
     #header.jumbotron
       #title
         h1 Garzoni font dataset’s profession profiling and descriptive statistics
       #buttons.col-lg-6.text-center
-        button#use.btn.btn-success Use our data
-        button#upload.btn.btn-success Upload your data
+        button#use.btn.btn-warning Discover garzoni statistics!
       #description.col-lg-6
         p Description here blablabla
     #content.col-lg-12.hide
@@ -25,11 +25,28 @@ html
           | 1101
           br
           | 1111
-      #charts.hide
-        #dashboard
-          p#numberOfRecords
+      #dashboard.hide
+        #general-info.affix.affix-top.col-lg-2.thumbnail
+        #general-charts.col-lg-7.col-lg-offset-2
+          #records-registers-distribution-pie.thumbnail.col-lg-6.text-center
+            h4 Records distribution by register:
+            canvas
+          #records-year-distribution-pie.thumbnail.col-lg-6.text-center
+            h4 Records distribution by year:
+            canvas
+          #registrer-year-value.thumbnail.col-lg-12
+            h4.pull-left Number of records per year, in %
+            button.btn.btn-info.pull-right Show registers
+            canvas
+        #data-description.col-lg-3.pull-right.thumbnail
+          h4 Dataset description:
+          p Chose any of the following fields to see detailed statistics!
+          .list-group
+
   script(src="/js/lib/jquery/dist/jquery.min.js")
   script(src="/js/lib/Chart.js/Chart.min.js")
   script(src="/js/lib/move.js/move.min.js")
   script(src="/js/lib/async/lib/async.js")
+  script(src="/js/lib/underscore/underscore-min.js")
+  script(src="/js/analyse.js")
   script(src="/js/index.js")
