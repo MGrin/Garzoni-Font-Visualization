@@ -163,8 +163,6 @@ var updateDashboard = function () {
     return drawDefaultView();
   }
 
-  var needHistograms = _.intersection(selectedColumns, booleanColumns).length !== selectedColumns.length;
-
   $('#general-charts').fadeOut();
 
   var title = '<strong>Selected columns:</strong> ';
@@ -174,39 +172,31 @@ var updateDashboard = function () {
   });
   $('#general-info #selectedColumns').html(title)
 
-  if (needHistograms) {
-    _.each(_.keys(charts.histograms), function (histo) {
-      charts.histograms[histo].chart.destroy();
-    });
-    var histogramsHTML = '';
+  _.each(_.keys(charts.histograms), function (histo) {
+    charts.histograms[histo].chart.destroy();
+  });
+  var histogramsHTML = '';
 
+  _.each(selectedColumns, function (column) {
+    histogramsHTML += '<div class="' + (statistics.isNumeric(column)?'col-lg-12':'col-lg-6') + ' thumbnail text-center">' +
+                        '<h4>"' + column + '" ' + (statistics.isNumeric(column)?'histogram':'pie chart') + '</h4>' +
+                        '<canvas id="histogram-' + column + '">' +
+                      '</div>';
+  });
+  $('#informative-charts #histograms').html(histogramsHTML);
+  $('#informative-charts #histograms').show();
+
+  setTimeout(function () {
     _.each(selectedColumns, function (column) {
-      if (statistics.isBoolean(column)) return;
-
-      histogramsHTML += '<div class="' + (statistics.isNumeric(column)?'col-lg-12':'col-lg-6') + ' thumbnail text-center">' +
-                          '<h4>"' + column + '" ' + (statistics.isNumeric(column)?'histogram':'pie chart') + '</h4>' +
-                          '<canvas id="histogram-' + column + '">' +
-                        '</div>';
+      charts.histograms[column] = {};
+      charts.histograms[column].ctx = $('#histogram-' + column).get(0).getContext("2d");
+      if (statistics.isNumeric(column)) {
+        charts.histograms[column].chart = new Chart(charts.histograms[column].ctx).Bar(statistics.getHistogramDrawable(column), {});
+      } else {
+        charts.histograms[column].chart = new Chart(charts.histograms[column].ctx).Pie(statistics.getHistogramDrawable(column, 'pie'), {});
+      }
     });
-    $('#informative-charts #histograms').html(histogramsHTML);
-    $('#informative-charts #histograms').show();
-
-    setTimeout(function () {
-      _.each(selectedColumns, function (column) {
-        if (statistics.isBoolean(column)) return;
-        charts.histograms[column] = {};
-        charts.histograms[column].ctx = $('#histogram-' + column).get(0).getContext("2d");
-        if (statistics.isNumeric(column)) {
-          charts.histograms[column].chart = new Chart(charts.histograms[column].ctx).Bar(statistics.getHistogramDrawable(column), {});
-        } else {
-          charts.histograms[column].chart = new Chart(charts.histograms[column].ctx).Pie(statistics.getHistogramDrawable(column, 'pie'), {});
-        }
-      });
-    }, 1);
-
-  } else {
-    $('#informative-charts #histograms').hide();
-  }
+  }, 1);
   $('#informative-charts').fadeIn();
 }
 

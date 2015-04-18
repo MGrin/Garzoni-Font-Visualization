@@ -54,7 +54,7 @@ var numericColumns = [
 
 var booleanColumns = [
   'a_quondam',
-  'accomondation_master',
+  'accommodation_master',
   'clothes_master',
   'female_guarantor',
   'generic_expenses_master',
@@ -64,6 +64,19 @@ var booleanColumns = [
   'm_gender',
   'a_gender'
 ];
+
+var booleanStrings = {
+  'a_quondam': ['Apprentice father is alive', 'Apprentice father is dead'],
+  'accommodation_master': ['Master pays for the accommodation', 'Apprentice pays for the accommodation'],
+  'clothes_master': ['Master pays for the apprentice\'s clothes', 'Apprentice pays for his clothes'],
+  'female_guarantor': ['There is a female among the guarantors', 'There is no a female among the guarantors'],
+  'generic_expenses_master': ['Master pays for the generic expenses', 'Apprentice pays for the generic expenses'],
+  'has_fled': ['Apprentice has fled', 'Apprentice does not have fled'],
+  'personal_care_master': ['Master pays for the personal care', 'Apprentice pays for the personal care'],
+  'salary_master': ['Master pays the salary', 'Someone else pays the salary'],
+  'm_gender': ['Male', 'Female'],
+  'a_gender': ['Male', 'Female']
+}
 
 var Statistics = function (data) {
   this.description = data[0];
@@ -76,7 +89,7 @@ var Statistics = function (data) {
       if (that.isNumeric(key)) {
         if (record[key] && record[key] !== '') newRecord[key] = Number(record[key]);
       } else if (that.isBoolean(key)) {
-        if (record[key] && record[key] !== '') newRecord[key] = (record[key] === '1');
+        if (record[key] && record[key] !== '') newRecord[key] = (record[key] === '1' || record[key] === 'M')?'1':'0';
       } else if (key !== '' && record[key] && record[key] !== ''){
         newRecord[key] = record[key];
       }
@@ -97,6 +110,11 @@ var Statistics = function (data) {
     that.registers = that.histograms.register;
     that.years = that.histograms.startY;
   });
+};
+
+Statistics.prototype.booleanToLabel = function (column, value) {
+  value = value === '1';
+  return value?booleanStrings[column][0]:booleanStrings[column][1];
 };
 
 Statistics.prototype.isNumeric = function (column) {
@@ -147,7 +165,7 @@ Statistics.prototype.getGeneralYearDataValue = function () {
   var yearValue = {};
   var nbOfRecords = this.getNbOfRecords();
   _.each(_.keys(that.years), function (year) {
-    yearValue[year] = Number(that.years[year])/nbOfRecords;
+    yearValue[year] = Number(that.years[year])/nbOfRecords * 100;
   });
 
   return yearValue;
@@ -158,7 +176,7 @@ Statistics.prototype.getGeneralRegisterDataValue = function () {
   var registerValue = {};
   var nbOfRecords = this.getNbOfRecords();
   _.each(_.keys(that.registers), function (register) {
-    registerValue[register] = Number(that.registers[register])/nbOfRecords;
+    registerValue[register] = Number(that.registers[register])/nbOfRecords * 100;
   });
 
   return registerValue;
@@ -234,8 +252,6 @@ Statistics.prototype.getDataQuantityDrawableBar = function (type) {
 };
 
 Statistics.prototype.getHistogramDrawable = function (column, type) {
-  if (this.isBoolean(column)) return {};
-
   if (!type) type = 'hist';
 
   var that = this;
@@ -266,7 +282,7 @@ Statistics.prototype.getHistogramDrawable = function (column, type) {
       drawableData.push({
         value: values[i],
         color: getRandomColor(),
-        label: labels[i]
+        label: that.isBoolean(column) ? that.booleanToLabel(column, labels[i]) : labels[i]
       });
     }
   }
