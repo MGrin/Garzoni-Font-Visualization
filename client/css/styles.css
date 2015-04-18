@@ -4,7 +4,7 @@
   background-color: #2A4D6E;
   color: white;
 }
-#title {
+#header #title {
   position: relative;
   top: -600px;
   text-align: left;
@@ -12,29 +12,26 @@
   font-size: 3em;
 }
 
-#buttons {
+#header #buttons {
   opacity: 0;
 }
 
-.btn {
-  margin: 0 10px;
-}
-
-#description {
+#header #description {
   position: relative;
   top: -100px;
   opacity: 0;
 }
+
 #content {
   height: 100%;
   padding: 10px;
 }
 
-#loading-window {
+#content #loading-window {
   color: #888;
 }
 
-#data-symbols {
+#content #data-symbols {
   width: 100px;
   height: 100px;
   background-color: black;
@@ -43,14 +40,25 @@
   padding-top: 10px;
 }
 
-#dashboard {
+#content #dashboard {
   display: none;
 }
 
-#data-description {
-  height: 95vh;
+#content #informative-charts {
+  display: none;
+}
+#content #informative-charts #title {
+  font-family: 'Stardos Stencil', cursive;
+}
+#content #informative-charts #histograms {
+  display: none;
+}
+#content #data-description{
+  height: 90vh;
   overflow-y: auto;
 }
+
+
 
 canvas {
   width: 100%;

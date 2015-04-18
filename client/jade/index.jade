@@ -26,7 +26,9 @@ html
           br
           | 1111
       #dashboard.hide
-        #general-info.affix.affix-top.col-lg-2.thumbnail
+        #general-info.affix.affix-top.col-lg-2
+          .thumbnail
+          #selectedColumns
         #general-charts.col-lg-7.col-lg-offset-2
           #records-registers-distribution-pie.thumbnail.col-lg-6.text-center
             h4 Records distribution by register:
@@ -36,8 +38,11 @@ html
             canvas
           #registrer-year-value.thumbnail.col-lg-12
             h4.pull-left Number of records per year, in %
-            button.btn.btn-info.pull-right Show registers
+            button.btn.btn-info.pull-right Show by registers
             canvas
+        #informative-charts.col-lg-7.col-lg-offset-2
+          #histograms
+            h4 Histograms:
         #data-description.col-lg-3.pull-right.thumbnail
           h4 Dataset description:
           p Chose any of the following fields to see detailed statistics!

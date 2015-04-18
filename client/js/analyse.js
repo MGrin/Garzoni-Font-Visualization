@@ -42,35 +42,104 @@ var getRandomColor = function () {
     return color;
 };
 
+var numericColumns = [
+  'a_age',
+  'annual_salary',
+  'enrolmentM',
+  'enrolmentY',
+  'length',
+  'startM',
+  'startY'
+];
+
+var booleanColumns = [
+  'a_quondam',
+  'accomondation_master',
+  'clothes_master',
+  'female_guarantor',
+  'generic_expenses_master',
+  'has_fled',
+  'personal_care_master',
+  'salary_master',
+  'm_gender',
+  'a_gender'
+];
+
 var Statistics = function (data) {
   this.description = data[0];
   this.data = _.rest(data);
-  this.registers = {};
-  this.years = {};
-
   var that = this;
-  async.eachSeries(that.data, function (record, nextRecord) {
-    if (!that.registers[record.register]) {
-      that.registers[record.register] = 0;
-    }
-    that.registers[record.register]++;
 
-    if (!that.years[record.startY]) {
-      that.years[record.startY] = 0;
+  this.data = _.map(that.data, function (record) {
+    var newRecord = {};
+    for (var key in record) {
+      if (that.isNumeric(key)) {
+        if (record[key] && record[key] !== '') newRecord[key] = Number(record[key]);
+      } else if (that.isBoolean(key)) {
+        if (record[key] && record[key] !== '') newRecord[key] = (record[key] === '1');
+      } else if (key !== '' && record[key] && record[key] !== ''){
+        newRecord[key] = record[key];
+      }
     }
-    that.years[record.startY] ++;
+    return newRecord;
+  });
+
+  this.histograms = {};
+
+  async.eachSeries(that.data, function (record, nextRecord) {
+    _.each(_.keys(record), function (column) {
+      if (!that.histograms[column]) that.histograms[column] = {};
+      if (!that.histograms[column][record[column]]) that.histograms[column][record[column]] = 0;
+      that.histograms[column][record[column]]++;
+    });
     return nextRecord();
   }, function () {
-
+    that.registers = that.histograms.register;
+    that.years = that.histograms.startY;
   });
 };
+
+Statistics.prototype.isNumeric = function (column) {
+  return numericColumns.indexOf(column) > -1;
+};
+
+Statistics.prototype.isBoolean = function (column) {
+  return booleanColumns.indexOf(column) > -1;
+};
+
+Statistics.prototype.isFactor = function (column) {
+  return booleanColumns.indexOf(column) < 0 && numericColumns.indexOf(column) < 0;
+}
 
 Statistics.prototype.getNbOfRecords = function () {
   return this.data.length;
 };
 
 Statistics.prototype.getNbOfRegisters = function (cb) {
-  return _.keys(this.registers).length;
+  return this.getUniqueValues('register').length;
+};
+
+Statistics.prototype.getUniqueValues = function (column) {
+  var res = _.keys(this.histograms[column]);
+  if (!this.isNumeric(column)) return res;
+
+  return _.sortBy(res, function (num) {
+    return Number(num);
+  });
+};
+
+Statistics.prototype.getHistogramData = function (column) {
+  if (!this.isNumeric(column)) return _.values(this.histograms[column]);;
+
+
+  var data = _.pairs(this.histograms[column]);
+  data = _.sortBy(data, function (val) {
+    return Number(val[0]);
+  });
+  data = _.map(data, function (val) {
+    return Number(val[1]);
+  });
+  return data;
 };
 
 Statistics.prototype.getGeneralYearDataValue = function () {
@@ -163,3 +232,43 @@ Statistics.prototype.getDataQuantityDrawableBar = function (type) {
 
   return drawableData;
 };
+
+Statistics.prototype.getHistogramDrawable = function (column, type) {
+  if (this.isBoolean(column)) return {};
+
+  if (!type) type = 'hist';
+
+  var that = this;
+  var values = that.getHistogramData(column);
+  var labels = that.getUniqueValues(column);
+
+  if (column === 'register') {
+    labels = _.map(labels, function (register) {
+      return transformRegisterName(register);
+    });
+  }
+  var drawableData;
+  if (type === 'hist') {
+    drawableData  = {
+      labels: labels,
+      datasets: [{
+        label: 'Histogram for ' + column,
+        fillColor: "rgba(151,187,205,0.5)",
+        strokeColor: "rgba(151,187,205,0.8)",
+        highlightFill: "rgba(151,187,205,0.75)",
+        highlightStroke: "rgba(151,187,205,1)",
+        data: values
+      }]
+    };
+  } else if (type === 'pie') {
+    drawableData = [];
+    for (var i = 0; i < values.length; i++) {
+      drawableData.push({
+        value: values[i],
+        color: getRandomColor(),
+        label: labels[i]
+      });
+    }
+  }
+  return drawableData;
+}
