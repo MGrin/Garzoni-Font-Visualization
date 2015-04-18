@@ -48,7 +48,16 @@ html
           p Chose any of the following fields to see detailed statistics!
           .list-group
 
+    #table-view-modal.modal.fade
+      .modal-dialog
+        .modal-content
+          .modal-header
+            button.close(data-dismiss="modal", aria-label="Close")
+              span(aria-hidden="true") &times;
+            h4 Loading...
+          .modal-body
   script(src="/js/lib/jquery/dist/jquery.min.js")
+  script(src="/js/lib/bootstrap/dist/js/bootstrap.min.js")
   script(src="/js/lib/Chart.js/Chart.min.js")
   script(src="/js/lib/move.js/move.min.js")
   script(src="/js/lib/async/lib/async.js")

@@ -180,7 +180,8 @@ var updateDashboard = function () {
   _.each(selectedColumns, function (column) {
     histogramsHTML += '<div class="' + (statistics.isNumeric(column)?'col-lg-12':'col-lg-6') + ' thumbnail text-center">' +
                         '<h4>"' + column + '" ' + (statistics.isNumeric(column)?'histogram':'pie chart') + '</h4>' +
-                        '<canvas id="histogram-' + column + '">' +
+                        '<canvas id="histogram-' + column + '"></canvas>' +
+                        '<a href="#" id="toggle-table-modal-' + column + '">Show as a table</a>' +
                       '</div>';
   });
   $('#informative-charts #histograms').html(histogramsHTML);
@@ -195,6 +196,23 @@ var updateDashboard = function () {
       } else {
         charts.histograms[column].chart = new Chart(charts.histograms[column].ctx).Pie(statistics.getHistogramDrawable(column, 'pie'), {});
       }
+      $('#toggle-table-modal-' + column).click(function () {
+        $('#table-view-modal .modal-header h4').text('"' + column + '" in table view');
+        var tableHTML = '<table class="table table-stripped">' +
+                          '<tr>' +
+                            '<td>Value</td>' +
+                            '<td>Number of occurencies</td>' +
+                          '</tr>';
+
+        _.each(_.keys(statistics.histograms[column]), function (value) {
+          var textValue = statistics.isBoolean(column)?statistics.booleanToLabel(column, value):value;
+          var freq = Number(statistics.histograms[column][value])/statistics.getNbOfRecords()*100 + '';
+          freq = freq.substring(0, 4) + '%';
+          tableHTML+='<tr><td>' + textValue + '</td><td>' + freq + '</td></tr>';
+        });
+        $('#table-view-modal .modal-body').html(tableHTML);
+        $('#table-view-modal').modal('show');
+      });
     });
   }, 1);
   $('#informative-charts').fadeIn();

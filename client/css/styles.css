@@ -59,6 +59,11 @@
 }
 
 
+#table-view-modal .modal-body{
+  height: 50vh;
+  overflow-y: auto;
+}
+
 
 canvas {
   width: 100%;
