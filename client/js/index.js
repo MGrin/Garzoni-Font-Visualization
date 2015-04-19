@@ -1,6 +1,7 @@
 var HISTOGRAM_UNIQUE_LIMIT = 150;
 
 var statistics;
+
 var charts = {
   histograms: {},
   measurables: {
@@ -99,7 +100,7 @@ var stateCallbacks = {
         for (var key in generalInfo) {
           generalInfoHTML += '<p id="#' + key + '">' + textById[key] + ':' + '<span class="pull-right">' + generalInfo[key] + '</span></p>'
         }
-        $('#dashboard #general-info .thumbnail').html(generalInfoHTML);
+        $('#dashboard #general-info #info').html(generalInfoHTML);
         return next();
       }, function (next) {
         var descriptionHTML = '';
@@ -118,10 +119,106 @@ var stateCallbacks = {
           $(this).click(function () {
             if ($(this).hasClass('active')) {
               selectedColumns = _.without(selectedColumns, column);
+              statistics.removeAllFilters(column, function () {});
             } else {
-              selectedColumns.push(column);
+              selectedColumns.unshift(column);
             }
             $(this).toggleClass('active');
+
+            if (selectedColumns.length === 0) {
+              $('#general-info #selected-data').slideUp(function () {
+                statistics.cleanFilters(function () {
+                  $('#general-info #selectedColumns').html('');
+                  $('#general-info #filters').html('');
+                });
+              });
+            } else {
+              $('#general-info #selectedColumns').html('');
+              $('#general-info #filters').html('');
+
+              var selectedColumnsHTML = '<strong>Selected columns:</strong><br/> ';
+              var filtersHTML = '<strong>Filters:</strong> ';
+              _.each(selectedColumns, function (column, index) {
+                var uniqueValues = statistics.getUniqueValues(column);
+
+                selectedColumnsHTML += '"' + column + '"';
+                if (index < selectedColumns.length-1) selectedColumnsHTML += ', ';
+
+                if (statistics.isFactor(column) || statistics.isNumeric(column)) {
+                  filtersHTML += '<p>"' + column + '": ' +
+                                  '<form class="form-inline">' +
+                                    '<select class="selectpicker" multiple id="filter-factor-numeric-' + column + '">';
+                  _.each(uniqueValues, function (unique) {
+                    var value = unique;
+                    if (column === 'register') value = transformRegisterName(unique);
+
+                    filtersHTML += '<option>' + value + '</option>';
+                  });
+                  filtersHTML += '</form></select></p>';
+                } else if (statistics.isBoolean(column)) {
+                  filtersHTML += '<p>"' + column + '":' +
+                                    '<form class="form-inline">';
+                  _.each(uniqueValues, function (unique) {
+                    filtersHTML += '<input type="checkbox" value="" id="filter-boolean-' + column + '-' + unique + '"/>' + statistics.booleanToLabel(column, unique) + '<br />';
+                  });
+                  filtersHTML += '</form></p>';
+                }
+              });
+              selectedColumnsHTML += '<p><a href="#" id="clean-selections-btn">Clean selections</a></p>';
+              filtersHTML += '<a id="clean-filters-btn" href="#">Clean filters</a>';
+              $('#general-info #selectedColumns').html(selectedColumnsHTML);
+              $('#general-info #filters').html(filtersHTML);
+
+              if (selectedColumns.length === 1) {
+                $('#general-info #selected-data').slideDown();
+              }
+            }
+
+            $('#general-info #selectedColumns #clean-selections-btn').click(function () {
+              selectedColumns = [];
+              statistics.cleanFilters(updateDashboard);
+              $('#general-info #selected-data').slideUp(function () {
+                statistics.cleanFilters(function () {
+                  $('#general-info #selectedColumns').html('');
+                  $('#general-info #filters').html('');
+                });
+              });
+              $('#data-description .list-group .list-group-item').each(function () {
+                $(this).removeClass('active');
+              });
+            });
+            $('#general-info #filters #clean-filters-btn').click(function () {
+              statistics.cleanFilters(updateDashboard);
+              _.each(selectedColumns, function (column) {
+                if (statistics.isBoolean(column)) {
+                  var uniqueValues = statistics.getUniqueValues(column);
+                  _.each(uniqueValues, function (unique) {
+                    $('#general-info #filters #filter-boolean-' + column + '-' + unique).prop('checked', false);
+                  });
+                } else if (statistics.isFactor(column) || statistics.isNumeric(column)) {
+                  $('#general-info #filters #filter-factor-numeric-' + column).val([]);
+                }
+              });
+            });
+
+            _.each(selectedColumns, function (column) {
+              if (statistics.isBoolean(column)) {
+                var uniqueValues = statistics.getUniqueValues(column);
+                _.each(uniqueValues, function (unique) {
+                  $('#general-info #filters #filter-boolean-' + column + '-' + unique).change(function () {
+                    if (this.checked) {
+                      statistics.addFilter(column, unique, updateDashboard);
+                    } else {
+                      statistics.removeFilter(column, unique, updateDashboard);
+                    }
+                  });
+                });
+              } else if (statistics.isFactor(column) || statistics.isNumeric(column)) {
+                $('#general-info #filters #filter-factor-numeric-' + column).change(function () {
+                  statistics.addFilter(column, $(this).val(), updateDashboard);
+                });
+              }
+            });
             updateDashboard();
           });
         });
@@ -154,9 +251,37 @@ var drawDefaultView = function () {
   charts.dataQuantity.chart = new Chart(charts.dataQuantity.ctx).Bar(statistics.getDataQuantityDrawableBar(charts.measurables.dataQuantity), {});
 };
 
+var plotCharts = function () {
+  _.each(selectedColumns, function (column) {
+    charts.histograms[column] = {};
+    charts.histograms[column].ctx = $('#histogram-' + column).get(0).getContext("2d");
+    if (statistics.isNumeric(column)) {
+      charts.histograms[column].chart = new Chart(charts.histograms[column].ctx).Bar(statistics.getHistogramDrawable(column), {});
+    } else {
+      charts.histograms[column].chart = new Chart(charts.histograms[column].ctx).Pie(statistics.getHistogramDrawable(column, 'pie'), {});
+    }
+    $('#toggle-table-modal-' + column).click(function () {
+      $('#table-view-modal .modal-header h4').text('"' + column + '" in table view');
+      var tableHTML = '<table class="table table-stripped">' +
+                        '<tr>' +
+                          '<td>Value</td>' +
+                          '<td>Number of occurencies</td>' +
+                        '</tr>';
+
+      _.each(_.keys(statistics.histograms[column]), function (value) {
+        var textValue = statistics.isBoolean(column)?statistics.booleanToLabel(column, value):value;
+        var freq = Number(statistics.histograms[column][value])/statistics.getNbOfRecords()*100 + '';
+        freq = freq.substring(0, 4) + '%';
+        tableHTML+='<tr><td>' + textValue + '</td><td>' + freq + '</td></tr>';
+      });
+      $('#table-view-modal .modal-body').html(tableHTML);
+      $('#table-view-modal').modal('show');
+    });
+  });
+};
+
 var updateDashboard = function () {
   if (selectedColumns.length === 0){
-    $('#general-info #selectedColumns').html('')
     _.each(_.keys(charts.histograms), function (histo) {
       charts.histograms[histo].chart.destroy();
     });
@@ -164,13 +289,6 @@ var updateDashboard = function () {
   }
 
   $('#general-charts').fadeOut();
-
-  var title = '<strong>Selected columns:</strong> ';
-  _.each(selectedColumns, function (column, index) {
-    title += '"' + column + '"';
-    if (index < selectedColumns.length-1) title += ', ';
-  });
-  $('#general-info #selectedColumns').html(title)
 
   _.each(_.keys(charts.histograms), function (histo) {
     charts.histograms[histo].chart.destroy();
@@ -182,39 +300,13 @@ var updateDashboard = function () {
                         '<h4>"' + column + '" ' + (statistics.isNumeric(column)?'histogram':'pie chart') + '</h4>' +
                         '<canvas id="histogram-' + column + '"></canvas>' +
                         '<a href="#" id="toggle-table-modal-' + column + '">Show as a table</a>' +
+                        '<p>' + statistics.description[column] + '</p>' +
                       '</div>';
   });
   $('#informative-charts #histograms').html(histogramsHTML);
   $('#informative-charts #histograms').show();
 
-  setTimeout(function () {
-    _.each(selectedColumns, function (column) {
-      charts.histograms[column] = {};
-      charts.histograms[column].ctx = $('#histogram-' + column).get(0).getContext("2d");
-      if (statistics.isNumeric(column)) {
-        charts.histograms[column].chart = new Chart(charts.histograms[column].ctx).Bar(statistics.getHistogramDrawable(column), {});
-      } else {
-        charts.histograms[column].chart = new Chart(charts.histograms[column].ctx).Pie(statistics.getHistogramDrawable(column, 'pie'), {});
-      }
-      $('#toggle-table-modal-' + column).click(function () {
-        $('#table-view-modal .modal-header h4').text('"' + column + '" in table view');
-        var tableHTML = '<table class="table table-stripped">' +
-                          '<tr>' +
-                            '<td>Value</td>' +
-                            '<td>Number of occurencies</td>' +
-                          '</tr>';
-
-        _.each(_.keys(statistics.histograms[column]), function (value) {
-          var textValue = statistics.isBoolean(column)?statistics.booleanToLabel(column, value):value;
-          var freq = Number(statistics.histograms[column][value])/statistics.getNbOfRecords()*100 + '';
-          freq = freq.substring(0, 4) + '%';
-          tableHTML+='<tr><td>' + textValue + '</td><td>' + freq + '</td></tr>';
-        });
-        $('#table-view-modal .modal-body').html(tableHTML);
-        $('#table-view-modal').modal('show');
-      });
-    });
-  }, 1);
+  setTimeout(plotCharts, 1);
   $('#informative-charts').fadeIn();
 }
 

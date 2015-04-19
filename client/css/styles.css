@@ -44,6 +44,10 @@
   display: none;
 }
 
+#content #dashboard #selected-data {
+  display: none;
+}
+
 #content #informative-charts {
   display: none;
 }
@@ -58,6 +62,9 @@
   overflow-y: auto;
 }
 
+#general-info #filters select {
+  width: 100%;
+}
 
 #table-view-modal .modal-body{
   height: 50vh;

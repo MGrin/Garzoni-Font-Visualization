@@ -81,83 +81,24 @@ var booleanStrings = {
 var Statistics = function (data) {
   this.description = data[0];
   this.data = _.rest(data);
+  this.filters = {};
+
   var that = this;
 
-  this.data = _.map(that.data, function (record) {
+  this.originalData = _.map(that.data, function (record) {
     var newRecord = {};
     for (var key in record) {
-      if (that.isNumeric(key)) {
-        if (record[key] && record[key] !== '') newRecord[key] = Number(record[key]);
-      } else if (that.isBoolean(key)) {
-        if (record[key] && record[key] !== '') newRecord[key] = (record[key] === '1' || record[key] === 'M')?'1':'0';
-      } else if (key !== '' && record[key] && record[key] !== ''){
-        newRecord[key] = record[key];
-      }
+      if (!that.filters[key]) that.filters[key] = [];
+      newRecord[key] = that.fixDataType(key, record[key]);
     }
     return newRecord;
   });
 
-  this.histograms = {};
+  this.data = this.originalData;
 
-  async.eachSeries(that.data, function (record, nextRecord) {
-    _.each(_.keys(record), function (column) {
-      if (!that.histograms[column]) that.histograms[column] = {};
-      if (!that.histograms[column][record[column]]) that.histograms[column][record[column]] = 0;
-      that.histograms[column][record[column]]++;
-    });
-    return nextRecord();
-  }, function () {
-    that.registers = that.histograms.register;
-    that.years = that.histograms.startY;
-  });
-};
-
-Statistics.prototype.booleanToLabel = function (column, value) {
-  value = value === '1';
-  return value?booleanStrings[column][0]:booleanStrings[column][1];
-};
-
-Statistics.prototype.isNumeric = function (column) {
-  return numericColumns.indexOf(column) > -1;
-};
-
-Statistics.prototype.isBoolean = function (column) {
-  return booleanColumns.indexOf(column) > -1;
-};
-
-Statistics.prototype.isFactor = function (column) {
-  return booleanColumns.indexOf(column) < 0 && numericColumns.indexOf(column) < 0;
-}
-
-Statistics.prototype.getNbOfRecords = function () {
-  return this.data.length;
-};
-
-Statistics.prototype.getNbOfRegisters = function (cb) {
-  return this.getUniqueValues('register').length;
-};
-
-Statistics.prototype.getUniqueValues = function (column) {
-  var res = _.keys(this.histograms[column]);
-  if (!this.isNumeric(column)) return res;
-
-  return _.sortBy(res, function (num) {
-    return Number(num);
-  });
-};
-
-Statistics.prototype.getHistogramData = function (column) {
-  if (!this.isNumeric(column)) return _.values(this.histograms[column]);;
-
-
-  var data = _.pairs(this.histograms[column]);
-  data = _.sortBy(data, function (val) {
-    return Number(val[0]);
-  });
-  data = _.map(data, function (val) {
-    return Number(val[1]);
-  });
-  return data;
+  this.computeHistograms();
+  that.registers = that.histograms.register;
+  that.years = that.histograms.startY;
 };
 
 Statistics.prototype.getGeneralYearDataValue = function () {
@@ -208,6 +149,108 @@ Statistics.prototype.getRecordYearDrawablePie = function () {
   });
 
   return drawableData;
+};
+
+Statistics.prototype.fixDataType = function (column, value) {
+  var that = this;
+  if (that.isNumeric(column)) {
+    if (value && value !== '') return Number(value);
+  } else if (that.isBoolean(column)) {
+    if (value && value !== '') {
+      if (value === '1' || value === 'M') return '1';
+      if (value === '0' || value === 'F') return '0';
+      return undefined;
+    }
+  } else if (column !== '' && value && value !== ''){
+    return value;
+  }
+};
+
+Statistics.prototype.computeHistograms = function () {
+  var that = this;
+  this.histograms = {};
+  _.each(that.data, function (record, nextRecord) {
+    _.each(_.keys(record), function (column) {
+      if (!that.histograms[column]) that.histograms[column] = {};
+      if (!that.histograms[column][record[column]]) that.histograms[column][record[column]] = 0;
+      that.histograms[column][record[column]]++;
+    });
+  });
+};
+
+Statistics.prototype.applyFilters = function (cb) {
+  var filteredData = [];
+  var that = this;
+
+  _.each(this.originalData, function (record) {
+    var acceptedRecord = true;
+    for (var column in record) {
+      if (!that.filters[column] || that.filters[column].length === 0) continue;
+
+      var value = that.fixDataType(column, record[column]);
+      if (column === 'register') value = transformRegisterName(record[column]);
+
+      if (that.filters[column].indexOf(value) < 0) {
+        acceptedRecord = false;
+        break;
+      }
+    }
+    if (acceptedRecord) filteredData.push(record);
+  });
+
+  that.data = filteredData;
+  that.computeHistograms();
+  return cb();
+};
+
+Statistics.prototype.booleanToLabel = function (column, value) {
+  value = value === '1';
+  return value?booleanStrings[column][0]:booleanStrings[column][1];
+};
+
+Statistics.prototype.isNumeric = function (column) {
+  return numericColumns.indexOf(column) > -1;
+};
+
+Statistics.prototype.isBoolean = function (column) {
+  return booleanColumns.indexOf(column) > -1;
+};
+
+Statistics.prototype.isFactor = function (column) {
+  return booleanColumns.indexOf(column) < 0 && numericColumns.indexOf(column) < 0;
+}
+
+Statistics.prototype.getNbOfRecords = function () {
+  return this.data.length;
+};
+
+Statistics.prototype.getNbOfRegisters = function (cb) {
+  return this.getUniqueValues('register').length;
+};
+
+Statistics.prototype.getUniqueValues = function (column) {
+  var res = _.keys(this.histograms[column]);
+  if (!this.isNumeric(column)) return res;
+
+  return _.sortBy(res, function (num) {
+    return Number(num);
+  });
+};
+
+Statistics.prototype.getHistogramData = function (column) {
+  var that = this;
+  var data = this.histograms[column];
+  if (!this.isNumeric(column)) return _.values(data);
+
+
+  var data = _.pairs(this.histograms[column]);
+  data = _.sortBy(data, function (val) {
+    return Number(val[0]);
+  });
+  data = _.map(data, function (val) {
+    return Number(val[1]);
+  });
+  return data;
 };
 
 Statistics.prototype.getDataQuantityDrawableBar = function (type) {
@@ -287,4 +330,44 @@ Statistics.prototype.getHistogramDrawable = function (column, type) {
     }
   }
   return drawableData;
+};
+
+Statistics.prototype.addFilter = function (column, value, cb) {
+  var that = this;
+  if (this.isBoolean(column)) {
+    var rightValue = this.fixDataType(column, value);
+    this.filters[column].push(rightValue);
+  } else if (this.isFactor(column) || this.isNumeric(column)) {
+    this.filters[column] = _.map(value, function (filterValue) {
+      return that.fixDataType(column, filterValue);
+    });
+  }
+
+  this.applyFilters(cb);
+};
+
+Statistics.prototype.removeFilter = function (column, value, cb) {
+  var that = this;
+  if (this.isBoolean(column)) {
+    var rightValue = this.fixDataType(column, value);
+    that.filters[column] = _.without(that.filters[column], rightValue);
+  } else if (this.isFactor(column) || this.isNumeric(column)) {
+    that.filters[column] = [];
+  }
+
+  this.applyFilters(cb);
+};
+
+Statistics.prototype.removeAllFilters = function (column, cb) {
+  this.filters[column] = [];
+  this.applyFilters(cb);
+}
+
+Statistics.prototype.cleanFilters = function (cb) {
+  for (var column in this.description) {
+    this.filters[column] = [];
+    this.data = this.originalData;
+    this.computeHistograms();
+    return cb();
+  }
 }
