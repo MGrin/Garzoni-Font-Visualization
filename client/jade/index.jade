@@ -25,12 +25,18 @@ html
           | 1101
           br
           | 1111
-      #dashboard.hide
+      #dashboard
         #general-info.affix.affix-top.col-lg-2
           #info.thumbnail
           #selected-data.thumbnail
             #selectedColumns
+              h4 Selected columns:
+              div
+              a(href="#") Clear selections
             #filters
+              h4 Filters:
+              div
+              a(href="#") Clear filters
         #general-charts.col-lg-7.col-lg-offset-2
           #records-registers-distribution-pie.thumbnail.col-lg-6.text-center
             h4 Records distribution by register:
@@ -39,12 +45,11 @@ html
             h4 Records distribution by year:
             canvas
           #registrer-year-value.thumbnail.col-lg-12
-            h4.pull-left Number of records per year, in %
+            h4.pull-left Number of records per year
             button.btn.btn-info.pull-right Show by registers
             canvas
         #informative-charts.col-lg-7.col-lg-offset-2
-          #histograms
-            h4 Histograms:
+
         #data-description.col-lg-3.pull-right.thumbnail
           h4 Dataset description:
           p Chose any of the following fields to see detailed statistics!
@@ -56,13 +61,16 @@ html
           .modal-header
             button.close(data-dismiss="modal", aria-label="Close")
               span(aria-hidden="true") &times;
-            h4 Loading...
+            h4
           .modal-body
+          .modal-footer
+            button.btn.btn-default(data-dismiss="modal", aria-label="Close") Close
   script(src="/js/lib/jquery/dist/jquery.min.js")
   script(src="/js/lib/bootstrap/dist/js/bootstrap.min.js")
   script(src="/js/lib/Chart.js/Chart.min.js")
   script(src="/js/lib/move.js/move.min.js")
   script(src="/js/lib/async/lib/async.js")
   script(src="/js/lib/underscore/underscore-min.js")
-  script(src="/js/analyse.js")
+  script(src="/js/dataHandler.js")
+  script(src="/js/visualize.js")
   script(src="/js/index.js")

@@ -1,5 +1,6 @@
 var express = require('express');
 var livereload = require('express-livereload');
+var fs = require('fs');
 
 var app = express();
 livereload(app, {
@@ -16,7 +17,13 @@ app.get('/', function (req, res) {
 });
 
 app.get('/data', function (req, res) {
-  res.sendFile(__dirname + '/client/data/garzoni.csv');
+  fs.readFile(__dirname + '/server/data/garzoni.csv', 'utf-8', function (err, file) {
+    if (err) return res.send(500, err);
+    res.send({
+      source: 'file',
+      data: file
+    });
+  });
 });
 
 app.listen(app.get('port'), function() {
